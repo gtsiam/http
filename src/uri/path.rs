@@ -513,6 +513,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::cmp_owned)]
     fn compares_with_a_string() {
         let path_and_query: PathAndQuery = "/b/world&foo=bar".parse().unwrap();
         assert!(path_and_query < "/c/world&foo=bar".to_string());

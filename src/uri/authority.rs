@@ -613,6 +613,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::cmp_owned)]
     fn compares_with_a_string() {
         let authority: Authority = "def.com".parse().unwrap();
         assert!(authority < "ghi.com".to_string());
