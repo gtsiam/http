@@ -20,9 +20,6 @@ fn header_map_fuzz() {
 
 #[derive(Debug, Clone)]
 struct Fuzz {
-    // The magic seed that makes the test case reproducible
-    seed: [u8; 32],
-
     // Actions to perform
     steps: Vec<Step>,
 
@@ -86,11 +83,7 @@ impl Fuzz {
             steps.push(expect.gen_step(&weight, &mut rng));
         }
 
-        Fuzz {
-            seed: seed,
-            steps: steps,
-            reduce: 0,
-        }
+        Fuzz { steps, reduce: 0 }
     }
 
     fn run(self) {
@@ -119,7 +112,7 @@ impl AltMap {
         let action = self.gen_action(weight, rng);
 
         Step {
-            action: action,
+            action,
             expect: self.clone(),
         }
     }
@@ -154,21 +147,14 @@ impl AltMap {
         let val = gen_header_value(rng);
         let old = self.insert(name.clone(), val.clone());
 
-        Action::Insert {
-            name: name,
-            val: val,
-            old: old,
-        }
+        Action::Insert { name, val, old }
     }
 
     fn gen_remove(&mut self, rng: &mut StdRng) -> Action {
         let name = self.gen_name(-4, rng);
         let val = self.remove(&name);
 
-        Action::Remove {
-            name: name,
-            val: val,
-        }
+        Action::Remove { name, val }
     }
 
     fn gen_append(&mut self, rng: &mut StdRng) -> Action {
@@ -180,11 +166,7 @@ impl AltMap {
         let ret = !vals.is_empty();
         vals.push(val.clone());
 
-        Action::Append {
-            name: name,
-            val: val,
-            ret: ret,
-        }
+        Action::Append { name, val, ret }
     }
 
     /// Negative numbers weigh finding an existing header higher
@@ -262,7 +244,7 @@ impl Action {
 }
 
 fn gen_header_name(g: &mut StdRng) -> HeaderName {
-    const STANDARD_HEADERS: &'static [HeaderName] = &[
+    const STANDARD_HEADERS: &[HeaderName] = &[
         header::ACCEPT,
         header::ACCEPT_CHARSET,
         header::ACCEPT_ENCODING,
@@ -361,10 +343,9 @@ fn gen_string(g: &mut StdRng, min: usize, max: usize) -> String {
     let bytes: Vec<_> = (min..max)
         .map(|_| {
             // Chars to pick from
-            b"ABCDEFGHIJKLMNOPQRSTUVabcdefghilpqrstuvwxyz----"
+            *b"ABCDEFGHIJKLMNOPQRSTUVabcdefghilpqrstuvwxyz----"
                 .choose(g)
                 .unwrap()
-                .clone()
         })
         .collect();
 

@@ -6,8 +6,8 @@ use bytes::Bytes;
 use http::HeaderValue;
 use test::Bencher;
 
-static SHORT: &'static [u8] = b"localhost";
-static LONG: &'static [u8] = b"Mozilla/5.0 (X11; CrOS x86_64 9592.71.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.80 Safari/537.36";
+static SHORT: &[u8] = b"localhost";
+static LONG: &[u8] = b"Mozilla/5.0 (X11; CrOS x86_64 9592.71.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.80 Safari/537.36";
 
 #[bench]
 fn from_shared_short(b: &mut Bencher) {

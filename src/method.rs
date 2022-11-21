@@ -15,13 +15,13 @@
 //! assert_eq!(Method::POST.as_str(), "POST");
 //! ```
 
+use self::extension::{AllocatedExtension, InlineExtension};
 use self::Inner::*;
-use self::extension::{InlineExtension, AllocatedExtension};
 
 use std::convert::AsRef;
+use std::convert::TryFrom;
 use std::error::Error;
 use std::str::FromStr;
-use std::convert::TryFrom;
 use std::{fmt, str};
 
 /// The Request Method (VERB)
@@ -46,9 +46,9 @@ use std::{fmt, str};
 pub struct Method(Inner);
 
 /// A possible error value when converting `Method` from bytes.
-pub struct InvalidMethod {
-    _priv: (),
-}
+#[non_exhaustive]
+#[derive(Debug)]
+pub struct InvalidMethod;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 enum Inner {
@@ -66,7 +66,6 @@ enum Inner {
     // Otherwise, allocate it
     ExtensionAllocated(AllocatedExtension),
 }
-
 
 impl Method {
     /// GET
@@ -148,10 +147,7 @@ impl Method {
     /// See [the spec](https://tools.ietf.org/html/rfc7231#section-4.2.1)
     /// for more words.
     pub fn is_safe(&self) -> bool {
-        match self.0 {
-            Get | Head | Options | Trace => true,
-            _ => false,
-        }
+        matches!(self.0, Get | Head | Options | Trace)
     }
 
     /// Whether a method is considered "idempotent", meaning the request has
@@ -289,15 +285,7 @@ impl FromStr for Method {
 
 impl InvalidMethod {
     fn new() -> InvalidMethod {
-        InvalidMethod { _priv: () }
-    }
-}
-
-impl fmt::Debug for InvalidMethod {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("InvalidMethod")
-            // skip _priv noise
-            .finish()
+        InvalidMethod
     }
 }
 
@@ -339,7 +327,7 @@ mod extension {
             let InlineExtension(ref data, len) = self;
             // Safety: the invariant of InlineExtension ensures that the first
             // len bytes of data contain valid UTF-8.
-            unsafe {str::from_utf8_unchecked(&data[..*len as usize])}
+            unsafe { str::from_utf8_unchecked(&data[..*len as usize]) }
         }
     }
 
@@ -357,7 +345,7 @@ mod extension {
         pub fn as_str(&self) -> &str {
             // Safety: the invariant of AllocatedExtension ensures that self.0
             // contains valid UTF-8.
-            unsafe {str::from_utf8_unchecked(&self.0)}
+            unsafe { str::from_utf8_unchecked(&self.0) }
         }
     }
 
@@ -376,6 +364,7 @@ mod extension {
     // Note that this definition means that any &[u8] that consists solely of valid
     // characters is also valid UTF-8 because the valid method characters are a
     // subset of the valid 1 byte UTF-8 encoding.
+    #[rustfmt::skip]
     const METHOD_CHARS: [u8; 256] = [
         //  0      1      2      3      4      5      6      7      8      9
         b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', b'\0', //   x
@@ -468,6 +457,6 @@ mod test {
         assert_eq!(Method::from_str("wOw!!").unwrap(), "wOw!!");
 
         let long_method = "This_is_a_very_long_method.It_is_valid_but_unlikely.";
-        assert_eq!(Method::from_str(&long_method).unwrap(), long_method);
+        assert_eq!(Method::from_str(long_method).unwrap(), long_method);
     }
 }

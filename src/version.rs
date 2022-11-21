@@ -42,6 +42,7 @@ impl Version {
     pub const HTTP_3: Version = Version(Http::H3);
 }
 
+#[non_exhaustive]
 #[derive(PartialEq, PartialOrd, Copy, Clone, Eq, Ord, Hash)]
 enum Http {
     Http09,
@@ -49,7 +50,6 @@ enum Http {
     Http11,
     H2,
     H3,
-    __NonExhaustive,
 }
 
 impl Default for Version {
@@ -69,7 +69,6 @@ impl fmt::Debug for Version {
             Http11 => "HTTP/1.1",
             H2 => "HTTP/2.0",
             H3 => "HTTP/3.0",
-            __NonExhaustive => unreachable!(),
         })
     }
 }

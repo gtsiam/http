@@ -190,7 +190,7 @@ fn drain_entry() {
         assert_eq!(vals[1], "world2");
     }
 
-    assert_eq!(5-2+1, headers.len());
+    assert_eq!(5 - 2 + 1, headers.len());
 }
 
 #[test]
@@ -267,18 +267,13 @@ fn insert_all_std_headers() {
     for (i, hdr) in STD.iter().enumerate() {
         m.insert(hdr.clone(), hdr.as_str().parse().unwrap());
 
-        for j in 0..(i + 1) {
-            assert_eq!(m[&STD[j]], STD[j].as_str());
+        for h in &STD[..(i + 1)] {
+            assert_eq!(m[h], h.as_str());
         }
 
         if i != 0 {
-            for j in (i + 1)..STD.len() {
-                assert!(
-                    m.get(&STD[j]).is_none(),
-                    "contained {}; j={}",
-                    STD[j].as_str(),
-                    j
-                );
+            for (j, h) in STD[(i + 1)..].iter().enumerate() {
+                assert!(m.get(h).is_none(), "contained {}; j={}", h.as_str(), j);
             }
         }
     }
@@ -286,18 +281,18 @@ fn insert_all_std_headers() {
 
 #[test]
 fn insert_79_custom_std_headers() {
-    let mut h = HeaderMap::new();
+    let mut m = HeaderMap::new();
     let hdrs = custom_std(79);
 
     for (i, hdr) in hdrs.iter().enumerate() {
-        h.insert(hdr.clone(), hdr.as_str().parse().unwrap());
+        m.insert(hdr.clone(), hdr.as_str().parse().unwrap());
 
-        for j in 0..(i + 1) {
-            assert_eq!(h[&hdrs[j]], hdrs[j].as_str());
+        for h in &hdrs[..(i + 1)] {
+            assert_eq!(m[h], h.as_str());
         }
 
-        for j in (i + 1)..hdrs.len() {
-            assert!(h.get(&hdrs[j]).is_none());
+        for h in &hdrs[(i + 1)..] {
+            assert!(m.get(h).is_none());
         }
     }
 }
@@ -327,7 +322,7 @@ fn custom_std(n: usize) -> Vec<HeaderName> {
         .collect()
 }
 
-const STD: &'static [HeaderName] = &[
+const STD: &[HeaderName] = &[
     ACCEPT,
     ACCEPT_CHARSET,
     ACCEPT_ENCODING,
@@ -424,7 +419,6 @@ fn value_htab() {
     HeaderValue::from_static("hello\tworld");
     HeaderValue::from_str("hello\tworld").unwrap();
 }
-
 
 #[test]
 fn remove_multiple_a() {
@@ -568,7 +562,8 @@ fn remove_entry_multi_3_others() {
 }
 
 fn remove_all_values<K>(headers: &mut HeaderMap, key: K) -> Vec<HeaderValue>
-    where K: IntoHeaderName
+where
+    K: IntoHeaderName,
 {
     match headers.entry(key) {
         Entry::Occupied(e) => e.remove_entry_mult().1.collect(),
@@ -627,7 +622,8 @@ fn remove_entry_3_others_b() {
 }
 
 fn remove_values<K>(headers: &mut HeaderMap, key: K) -> Option<HeaderValue>
-    where K: IntoHeaderName
+where
+    K: IntoHeaderName,
 {
     match headers.entry(key) {
         Entry::Occupied(e) => Some(e.remove_entry().1),

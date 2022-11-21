@@ -396,7 +396,7 @@ bench!(insert_one_100_char_header(new_map, b) {
     })
 });
 
-const HN_HDRS: [(&'static str, &'static str); 11] = [
+const HN_HDRS: [(&str, &str); 11] = [
     ("Date", "Fri, 27 Jan 2017 23:00:00 GMT"),
     ("Content-Type", "text/html; charset=utf-8"),
     ("Transfer-Encoding", "chunked"),
@@ -517,7 +517,7 @@ fn custom_std(n: usize) -> Vec<HeaderName> {
         .collect()
 }
 
-const STD: &'static [HeaderName] = &[
+const STD: &[HeaderName] = &[
     ACCEPT,
     ACCEPT_CHARSET,
     ACCEPT_ENCODING,

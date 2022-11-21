@@ -24,14 +24,8 @@ impl<K: PartialEq, V> VecMap<K, V> {
     #[inline]
     pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
         match self.find(&key) {
-            Some(pos) => Entry::Occupied(OccupiedEntry {
-                vec: self,
-                pos: pos,
-            }),
-            None => Entry::Vacant(VacantEntry {
-                vec: self,
-                key: key,
-            }),
+            Some(pos) => Entry::Occupied(OccupiedEntry { vec: self, pos }),
+            None => Entry::Vacant(VacantEntry { vec: self, key }),
         }
     }
 

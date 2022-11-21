@@ -1,8 +1,10 @@
 use bytes::{Bytes, BytesMut};
 
+use core::hash::Hash;
 use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt::Write;
+use std::hash::Hasher;
 use std::str::FromStr;
 use std::{cmp, fmt, mem, str};
 
@@ -17,7 +19,7 @@ use crate::header::name::HeaderName;
 /// To handle this, the `HeaderValue` is useable as a type and can be compared
 /// with strings and implements `Debug`. A `to_str` fn is provided that returns
 /// an `Err` if the header value contains non visible ascii characters.
-#[derive(Clone, Hash)]
+#[derive(Clone)]
 pub struct HeaderValue {
     inner: Bytes,
     is_sensitive: bool,
@@ -25,18 +27,17 @@ pub struct HeaderValue {
 
 /// A possible error when converting a `HeaderValue` from a string or byte
 /// slice.
-pub struct InvalidHeaderValue {
-    _priv: (),
-}
+#[non_exhaustive]
+#[derive(Debug)]
+pub struct InvalidHeaderValue;
 
 /// A possible error when converting a `HeaderValue` to a string representation.
 ///
 /// Header field values may contain opaque bytes, in which case it is not
 /// possible to represent the value as a string.
+#[non_exhaustive]
 #[derive(Debug)]
-pub struct ToStrError {
-    _priv: (),
-}
+pub struct ToStrError;
 
 impl HeaderValue {
     /// Convert a static string to a `HeaderValue`.
@@ -79,12 +80,15 @@ impl HeaderValue {
     /// assert_eq!(val, "hello");
     /// ```
     #[inline]
-    #[allow(unconditional_panic)] // required for the panic circumvention
     pub const fn from_static(src: &'static str) -> HeaderValue {
         let bytes = src.as_bytes();
         let mut i = 0;
         while i < bytes.len() {
             if !is_visible_ascii(bytes[i]) {
+                // const panic for rust < 1.57. Once the MSRV for the http crate reaches 1.57, this
+                // should be replaced by a proper panic message.
+                #[allow(unconditional_panic)]
+                #[allow(clippy::no_effect)]
                 ([] as [u8; 0])[0]; // Invalid header value
             }
             i += 1;
@@ -189,8 +193,8 @@ impl HeaderValue {
 
     /// Convert a `Bytes` directly into a `HeaderValue` without validating.
     ///
-    /// This function does NOT validate that illegal bytes are not contained
-    /// within the buffer.
+    /// # Safety
+    /// The source buffer must contain NO illegal bytes
     pub unsafe fn from_maybe_shared_unchecked<T>(src: T) -> HeaderValue
     where
         T: AsRef<[u8]> + 'static,
@@ -203,7 +207,6 @@ impl HeaderValue {
                 }
             }
         } else {
-
             if_downcast_into!(T, Bytes, src, {
                 return HeaderValue {
                     inner: src,
@@ -223,10 +226,13 @@ impl HeaderValue {
         HeaderValue::try_from_generic(src, std::convert::identity)
     }
 
-    fn try_from_generic<T: AsRef<[u8]>, F: FnOnce(T) -> Bytes>(src: T, into: F) -> Result<HeaderValue, InvalidHeaderValue> {
+    fn try_from_generic<T: AsRef<[u8]>, F: FnOnce(T) -> Bytes>(
+        src: T,
+        into: F,
+    ) -> Result<HeaderValue, InvalidHeaderValue> {
         for &b in src.as_ref() {
             if !is_valid(b) {
-                return Err(InvalidHeaderValue { _priv: () });
+                return Err(InvalidHeaderValue);
             }
         }
         Ok(HeaderValue {
@@ -253,7 +259,7 @@ impl HeaderValue {
 
         for &b in bytes {
             if !is_visible_ascii(b) {
-                return Err(ToStrError { _priv: () });
+                return Err(ToStrError);
             }
         }
 
@@ -589,14 +595,6 @@ fn is_valid(b: u8) -> bool {
     b >= 32 && b != 127 || b == b'\t'
 }
 
-impl fmt::Debug for InvalidHeaderValue {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("InvalidHeaderValue")
-            // skip _priv noise
-            .finish()
-    }
-}
-
 impl fmt::Display for InvalidHeaderValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("failed to parse header value")
@@ -613,7 +611,7 @@ impl fmt::Display for ToStrError {
 
 impl Error for ToStrError {}
 
-// ===== PartialEq / PartialOrd =====
+// ===== PartialEq / PartialOrd / Hash =====
 
 impl PartialEq for HeaderValue {
     #[inline]
@@ -623,6 +621,12 @@ impl PartialEq for HeaderValue {
 }
 
 impl Eq for HeaderValue {}
+
+impl Hash for HeaderValue {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
+    }
+}
 
 impl PartialOrd for HeaderValue {
     #[inline]
@@ -697,7 +701,7 @@ impl PartialOrd<HeaderValue> for [u8] {
 impl PartialEq<String> for HeaderValue {
     #[inline]
     fn eq(&self, other: &String) -> bool {
-        *self == &other[..]
+        *self == other.as_str()
     }
 }
 
