@@ -57,11 +57,27 @@ macro_rules! bench {
     };
 }
 
+// Black box the key (& value on insert) in map operations. Also black box the return value to
+// forbid using the fact that it is not used anywhere in optimizations.
+
+macro_rules! bench_insert {
+    ($h:ident, $key:expr, $value:expr) => {
+        test::black_box($h.insert(test::black_box($key), test::black_box($value)))
+    };
+}
+
+macro_rules! bench_get {
+    ($h:ident, $key:expr) => {
+        test::black_box($h.get($key))
+    };
+}
+
 bench!(new_insert_get_host(new_map, b) {
     b.iter(|| {
         let mut h = new_map();
-        h.insert(HOST, "hyper.rs");
-        test::black_box(h.get(&HOST));
+
+        bench_insert!(h, HOST, "hyper.rs");
+        bench_get!(h, &HOST);
     })
 });
 
@@ -71,11 +87,11 @@ bench!(insert_4_std_get_30(new_map, b) {
         let mut h = new_map();
 
         for i in 0..4 {
-            h.insert(super::STD[i].clone(), "foo");
+            bench_insert!(h, super::STD[i].clone(), "foo");
         }
 
         for i in 0..30 {
-            test::black_box(h.get(&super::STD[i % 4]));
+            bench_get!(h, &super::STD[i % 4]);
         }
     })
 });
@@ -86,11 +102,11 @@ bench!(insert_6_std_get_6(new_map, b) {
         let mut h = new_map();
 
         for i in 0..6 {
-            h.insert(super::STD[i].clone(), "foo");
+            bench_insert!(h, super::STD[i].clone(), "foo");
         }
 
         for i in 0..6 {
-            test::black_box(h.get(&super::STD[i % 4]));
+            bench_get!(h, &super::STD[i % 4]);
         }
     })
 });
@@ -124,7 +140,7 @@ bench!(get_10_of_20_std(new_map, b) {
 
     b.iter(|| {
         for hdr in &super::STD[10..20] {
-            test::black_box(h.get(hdr));
+            bench_get!(h, hdr);
         }
     })
 });
@@ -138,7 +154,7 @@ bench!(get_100_std(new_map, b) {
 
     b.iter(|| {
         for i in 0..100 {
-            test::black_box(h.get(&super::STD[i % super::STD.len()]));
+            bench_get!(h, &super::STD[i % super::STD.len()]);
         }
     })
 });
@@ -148,10 +164,10 @@ bench!(set_8_get_1_std(new_map, b) {
         let mut h = new_map();
 
         for hdr in &super::STD[0..8] {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&super::STD[0]));
+        bench_get!(h, &super::STD[0]);
     })
 });
 
@@ -160,10 +176,10 @@ bench!(set_10_get_1_std(new_map, b) {
         let mut h = new_map();
 
         for hdr in &super::STD[0..10] {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&super::STD[0]));
+        bench_get!(h, &super::STD[0]);
     })
 });
 
@@ -172,10 +188,10 @@ bench!(set_20_get_1_std(new_map, b) {
         let mut h = new_map();
 
         for hdr in &super::STD[0..20] {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&super::STD[0]));
+        bench_get!(h, &super::STD[0]);
     })
 });
 
@@ -189,7 +205,7 @@ bench!(get_10_custom_short(new_map, b) {
 
     b.iter(|| {
         for hdr in &hdrs[..10] {
-            test::black_box(h.get(hdr));
+            bench_get!(h, hdr);
         }
     })
 });
@@ -201,10 +217,10 @@ bench!(set_10_get_1_custom_short(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&hdrs[0]));
+        bench_get!(h, &hdrs[0]);
     })
 });
 
@@ -215,10 +231,10 @@ bench!(set_10_get_1_custom_med(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&hdrs[0]));
+        bench_get!(h, &hdrs[0]);
     })
 });
 
@@ -229,10 +245,10 @@ bench!(set_10_get_1_custom_long(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&hdrs[0]));
+        bench_get!(h, &hdrs[0]);
     })
 });
 
@@ -243,10 +259,10 @@ bench!(set_10_get_1_custom_very_long(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&hdrs[0]));
+        bench_get!(h, &hdrs[0]);
     })
 });
 
@@ -257,10 +273,10 @@ bench!(set_20_get_1_custom_short(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&hdrs[0]));
+        bench_get!(h, &hdrs[0]);
     })
 });
 
@@ -271,10 +287,10 @@ bench!(set_20_get_1_custom_med(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&hdrs[0]));
+        bench_get!(h, &hdrs[0]);
     })
 });
 
@@ -285,10 +301,10 @@ bench!(set_20_get_1_custom_long(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&hdrs[0]));
+        bench_get!(h, &hdrs[0]);
     })
 });
 
@@ -299,10 +315,10 @@ bench!(set_20_get_1_custom_very_long(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
 
-        test::black_box(h.get(&hdrs[0]));
+        bench_get!(h, &hdrs[0]);
     })
 });
 
@@ -311,8 +327,10 @@ bench!(insert_all_std_headers(new_map, b) {
         let mut h = new_map();
 
         for hdr in super::STD {
-            test::black_box(h.insert(hdr.clone(), "foo"));
+            bench_insert!(h, hdr.clone(), "foo");
         }
+
+        h
     })
 });
 
@@ -323,8 +341,10 @@ bench!(insert_79_custom_std_headers(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            h.insert(hdr.clone(), "foo");
+            bench_insert!(h, hdr.clone(), "foo");
         }
+
+        h
     })
 });
 
@@ -335,8 +355,10 @@ bench!(insert_100_custom_headers(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            test::black_box(h.insert(hdr.clone(), "foo"));
+            bench_insert!(h, hdr.clone(), "foo");
         }
+
+        h
     })
 });
 
@@ -347,8 +369,10 @@ bench!(insert_500_custom_headers(new_map, b) {
         let mut h = new_map();
 
         for hdr in &hdrs {
-            test::black_box(h.insert(hdr.clone(), "foo"));
+            bench_insert!(h, hdr.clone(), "foo");
         }
+
+        h
     })
 });
 
@@ -358,8 +382,8 @@ bench!(insert_one_15_char_header(new_map, b) {
 
     b.iter(|| {
         let mut h = new_map();
-        h.insert(hdr.clone(), "hello");
-        test::black_box(h);
+        bench_insert!(h, hdr.clone(), "hello");
+        h
     })
 });
 
@@ -369,8 +393,8 @@ bench!(insert_one_25_char_header(new_map, b) {
 
     b.iter(|| {
         let mut h = new_map();
-        h.insert(hdr.clone(), "hello");
-        test::black_box(h);
+        bench_insert!(h, hdr.clone(), "hello");
+        h
     })
 });
 
@@ -380,8 +404,8 @@ bench!(insert_one_50_char_header(new_map, b) {
 
     b.iter(|| {
         let mut h = new_map();
-        h.insert(hdr.clone(), "hello");
-        test::black_box(h);
+        bench_insert!(h, hdr.clone(), "hello");
+        h
     })
 });
 
@@ -391,8 +415,8 @@ bench!(insert_one_100_char_header(new_map, b) {
 
     b.iter(|| {
         let mut h = new_map();
-        h.insert(hdr.clone(), "hello");
-        test::black_box(h);
+        bench_insert!(h, hdr.clone(), "hello");
+        h
     })
 });
 
@@ -419,12 +443,12 @@ bench!(hn_hdrs_set_8_get_many(new_map, b) {
         let mut h = new_map();
 
         for &(ref name, val) in hdrs.iter() {
-            h.insert(name.clone(), val);
+            bench_insert!(h, name.clone(), val);
         }
 
         for _ in 0..15 {
-            test::black_box(h.get(&CONTENT_LENGTH));
-            test::black_box(h.get(&VARY));
+            bench_get!(h, &CONTENT_LENGTH);
+            bench_get!(h, &VARY);
         }
     });
 });
@@ -440,11 +464,11 @@ bench!(hn_hdrs_set_8_get_miss(new_map, b) {
         let mut h = new_map();
 
         for &(ref name, val) in hdrs.iter() {
-            h.insert(name.clone(), val);
+            bench_insert!(h, name.clone(), val);
         }
 
-        test::black_box(h.get(&CONTENT_LENGTH));
-        test::black_box(h.get(&miss));
+        bench_get!(h, &CONTENT_LENGTH);
+        bench_get!(h, &miss);
     });
 });
 
@@ -459,13 +483,13 @@ bench!(hn_hdrs_set_11_get_with_miss(new_map, b) {
         let mut h = new_map();
 
         for &(ref name, val) in hdrs.iter() {
-            h.insert(name.clone(), val);
+            bench_insert!(h, name.clone(), val);
         }
 
         for _ in 0..10 {
-            test::black_box(h.get(&CONTENT_LENGTH));
-            test::black_box(h.get(&VARY));
-            test::black_box(h.get(&miss));
+            bench_get!(h, &CONTENT_LENGTH);
+            bench_get!(h, &VARY);
+            bench_get!(h, &miss);
         }
     });
 });
